@@ -1,0 +1,274 @@
+@import url('https://fonts.googleapis.com/css2?family=Leckerli+One&display=swap');
+
+/* ==== COLOR VARIABLES ==== */
+:root {
+  --bg-gradient-start: #0b0014;
+  --bg-gradient-middle1: #150026;
+  --bg-gradient-middle2: #270444;
+  --bg-gradient-middle3: #400a6b;
+  --bg-gradient-end: #3f066e;
+
+  --primary-color: #6a1b9a;       /* buttons, highlights */
+  --primary-hover: #8e24aa;
+
+  --card-bg: #ececec;             /* paper card background */
+  --card-border: #6a1b9a;         /* dashed border */
+  --card-text: #212121;
+
+  --link-color: #4a148c;
+  --link-hover: #6a1b9a;
+
+  --tag-bg: #ce93d8;
+
+  --loading-color: #fff;
+}
+
+/* ==== BASE STYLES ==== */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; /* full viewport height */
+  font-family: 'Verdana', sans-serif;
+  background: radial-gradient(circle at top left,
+  var(--bg-gradient-end),
+  var(--bg-gradient-middle3),
+  var(--bg-gradient-middle2),
+  var(--bg-gradient-middle1),
+  var(--bg-gradient-start)
+    );
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-size: cover;
+  color: #f0f0f0;
+}
+
+.app-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+h1 {
+  text-align: center;
+  font-family: "Leckerli One", cursive;
+  font-size: 6rem;
+  color: #ffffff;
+  text-shadow: 2px 2px 6px rgba(0,0,0,0.5);
+}
+
+.hero {
+  margin-bottom: 5rem;
+}
+
+/* ==== SEARCH FORM ==== */
+.search-form {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+}
+
+.search-form input[type="text"] {
+  flex: 1;
+  max-width: 50rem;
+  padding: 0.8rem;
+  border-radius: 10px;
+  border: none;
+  font-size: 1rem;
+}
+
+.search-form button {
+  padding: 0.8rem 1.5rem;
+  font-size: 1rem;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.search-form button:hover {
+  background-color: var(--primary-hover);
+  transform: translateY(-2px);
+}
+
+/* ==== FILTERS ==== */
+.filters-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  gap: 2rem;
+}
+
+.filters strong, .sort-by strong {
+  margin: 6px 10px;
+}
+
+.filters {
+  display: flex;
+  flex-direction: row;
+}
+
+.filters input[type="checkbox"] {
+  margin: 0 10px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+select {
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: none;
+  font-size: 0.9rem;
+}
+
+/* ==== PAPER CARD ==== */
+.paper-card {
+  background-color: var(--card-bg);
+  color: var(--card-text);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  border-radius: 15px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+  position: relative;
+  overflow: hidden;
+  border: 2px dashed var(--card-border);
+  text-align: justify;
+}
+
+.paper-card h3 a {
+  text-decoration: none;
+  color: var(--link-color);
+}
+
+.paper-card h3 a:hover {
+  text-decoration: underline;
+}
+
+.tags {
+  margin-top: 0.5rem;
+}
+
+.tag {
+  display: inline-block;
+  background: var(--tag-bg);
+  padding: 0.2rem 0.5rem;
+  margin-right: 0.3rem;
+  border-radius: 5px;
+  font-size: 0.8rem;
+}
+
+/* ==== RELATED BUTTON ==== */
+.buttons-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.related-button {
+  border: none;
+  background-color: var(--card-border);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.3s;
+  font-size: 0.8rem;
+  margin: 0 10px;
+}
+
+.related-button:hover {
+  background-color: var(--primary-hover);
+}
+
+.summary-button {
+  border: none;
+  background-color: var(--card-border);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.3s;
+  text-decoration: none;
+  font-size: 0.8rem;
+  margin: 0 10px;
+}
+
+.summary-button:hover {
+  background-color: var(--primary-hover);
+}
+
+#smry-loading, .loading {
+  color: var(--primary-color);
+}
+
+.summary-result {
+  text-align: justify;
+}
+
+/* ==== RELATED PAPERS ==== */
+.related-papers {
+  margin-top: 1rem;
+  padding-left: 1rem;
+}
+
+.related-papers a {
+  text-decoration: none;
+  color: var(--link-color);
+  font-weight: bold;
+}
+
+.related-papers a:hover {
+  text-decoration: underline;
+}
+
+.related-papers small {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #555;
+}
+
+/* ==== LOADING ==== */
+.loading {
+  text-align: center;
+  font-style: italic;
+  color: var(--loading-color);
+}
+
+/* ==== MEDIA QUERIES ==== */
+@media (max-width: 600px) {
+  h1 {
+    font-size: 2rem;
+  }
+
+  .search-form input[type="text"] {
+    width: 100%;
+    margin: 0 0 1rem 0;
+  }
+
+  .filters {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .paper-card {
+    transform: none;
+  }
+}
