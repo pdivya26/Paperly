@@ -4,25 +4,30 @@ Paperly is a full-stack web application designed to help researchers, students, 
 
 ## Features:
 
-- Search by topic – Find relevant academic papers instantly.
-- Filter by source – Narrow down papers from sources like IEEE, ACM, arXiv, and OpenAlex.
-- Sort options – Sort papers by relevance, newest, oldest, most cited, least cited, or alphabetically.
-- AI-powered summaries – Generate concise, easy-to-read summaries using the Gemini API.
-- Related papers – Explore papers related to the one you are viewing.
-- Responsive UI – Clean, intuitive interface for desktop and mobile.
+- ** Topic-Based Search ** – Search academic papers using topics, keywords, or paper titles.
+- ** File-Based Search ** – Upload a research paper or document to discover related papers.
+- ** Multi-Source Integration ** – Fetch papers from platforms like IEEE, ACM, arXiv, and OpenAlex.
+- ** Advanced Filtering & Sorting ** – Filter and sort papers by relevance, date, citations, and source.
+- ** AI-Powered Summaries ** – Generate concise summaries of research papers using AI.
+- ** Related Papers Discovery ** – Explore similar and connected research papers easily.
+- ** Responsive UI ** – Clean and user-friendly interface optimized for desktop and mobile devices.
 
 ## Tech Stack:
 
-- Frontend: React, JavaScript, HTML, CSS
+- Frontend: React
 - Backend: Node.js, Express
-- APIs: Gemini API (summarization), Research Publication APIs (Paper Data
+- APIs: Groq API (summarization), Research Publication APIs (Paper Data)
 
 ## Implementation Screenshots
 
-<img width="1919" height="867" alt="Paperly" src="https://github.com/user-attachments/assets/6cae4f40-6e4a-4f2a-9314-4f19b20fd2bb" />
+<img width="1919" height="969" alt="PPL1" src="https://github.com/user-attachments/assets/111a6d81-5de0-4634-8843-dec93ed31de9" />
 
-<img width="1896" height="862" alt="Paperly1" src="https://github.com/user-attachments/assets/f1fda179-063d-43bc-b57c-51d9c0ac1b08" />
+<img width="1918" height="967" alt="PPL2" src="https://github.com/user-attachments/assets/817863ff-725c-403c-934b-3472dfc86b76" />
 
-<img width="1897" height="864" alt="Paperly2" src="https://github.com/user-attachments/assets/de0d8974-5f36-49d9-be69-4b97d9d59b87" />
+<img width="1919" height="965" alt="PPL3" src="https://github.com/user-attachments/assets/22aceac8-1b02-4e88-b7c9-4195badd887d" />
 
-<img width="1917" height="864" alt="Paperly3" src="https://github.com/user-attachments/assets/5faf8375-a08a-47b7-b998-ae9cea4eaa23" />
+<img width="1919" height="966" alt="PPL4" src="https://github.com/user-attachments/assets/25fdbf88-f00f-4320-acf9-b16c9b7989bf" />
+
+<img width="1919" height="970" alt="PPL5" src="https://github.com/user-attachments/assets/6710f201-9e65-4320-a447-d5dd9ab4b882" />
+
+<img width="1919" height="966" alt="PPL6" src="https://github.com/user-attachments/assets/30125636-10f3-4c11-817b-5eb731c87a10" />
