@@ -4,19 +4,19 @@ Paperly is a full-stack web application designed to help researchers, students, 
 
 ## Features:
 
-- ** Topic-Based Search ** – Search academic papers using topics, keywords, or paper titles.
-- ** File-Based Search ** – Upload a research paper or document to discover related papers.
-- ** Multi-Source Integration ** – Fetch papers from platforms like IEEE, ACM, arXiv, and OpenAlex.
-- ** Advanced Filtering & Sorting ** – Filter and sort papers by relevance, date, citations, and source.
-- ** AI-Powered Summaries ** – Generate concise summaries of research papers using AI.
-- ** Related Papers Discovery ** – Explore similar and connected research papers easily.
-- ** Responsive UI ** – Clean and user-friendly interface optimized for desktop and mobile devices.
+- **Topic-Based Search** – Search academic papers using topics, keywords, or paper titles.
+- **File-Based Search** – Upload a research paper or document to discover related papers.
+- **Multi-Source Integration** – Fetch papers from platforms like IEEE, ACM, arXiv, and OpenAlex.
+- **Advanced Filtering & Sorting** – Filter and sort papers by relevance, date, citations, and source.
+- **AI-Powered Summaries** – Generate concise summaries of research papers using AI.
+- **Related Papers Discovery** – Explore similar and connected research papers easily.
+- **Responsive UI** – Clean and user-friendly interface optimized for desktop and mobile devices.
 
 ## Tech Stack:
 
-- Frontend: React
-- Backend: Node.js, Express
-- APIs: Groq API (summarization), Research Publication APIs (Paper Data)
+- **Frontend:** React
+- **Backend:** Node.js, Express
+- **APIs:** Groq API (summarization), Research Publication APIs (Paper Data)
 
 ## Implementation Screenshots
 
