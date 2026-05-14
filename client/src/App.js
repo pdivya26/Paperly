@@ -34,12 +34,16 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [selectedSources, setSelectedSources] = useState([]);
   const [sortBy, setSortBy] = useState("Relevance");
+  const [uploading, setUploading] = useState(null);
+  const [uploadedPaper, setUploadedPaper] = useState(null);
+  const [uploadResults, setUploadResults] = useState([]);
 
   const handleSearch = async (e) => {
     e.preventDefault();
     if (!topic) return;
 
     // Clear previous results and filters before fetching new ones
+    setUploadedPaper(null);
     setPapers([]);
     setFilteredPapers([]);
     setSelectedSources([]);
@@ -59,6 +63,56 @@ function App() {
       console.error("Failed to fetch papers:", err);
       alert("Failed to fetch papers.");
     } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("paper", file);
+
+    try {
+      // Step 1: Upload and Parse PDF
+      const res = await fetch("http://localhost:5000/upload-search", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error("PDF processing failed");
+      const data = await res.json();
+
+      // Step 2: Set the uploaded paper as a "Featured" result
+      setUploadedPaper({
+        title: data.title,
+        summary: data.abstract,
+        authors: [data.authors],
+        source: "Uploaded PDF",
+        year: "",
+        citations: 0,
+        link: ""
+      });
+
+      // Step 3: Automatically search for related papers using the Title
+      setTopic(data.title);
+      setLoading(true);
+      
+      const searchRes = await fetch(
+        `http://localhost:5000/papers?topic=${encodeURIComponent(data.title)}`
+      );
+      const searchData = await searchRes.json();
+      
+      setPapers(searchData.papers);
+      setFilteredPapers(searchData.papers);
+
+    } catch (err) {
+      console.error("Upload failed:", err);
+      alert("Error: " + err.message);
+    } finally {
+      setUploading(false);
       setLoading(false);
     }
   };
@@ -137,6 +191,15 @@ function App() {
             required
           />
           <button type="submit">Search</button>
+          <label className="upload-file" title="Upload a paper to find similar research">
+          {uploading ? "Loading" : "Upload"}
+          <input 
+            type="file" 
+            accept=".pdf" 
+            onChange={handleFileUpload} 
+            style={{ display: "none" }} 
+          />
+        </label>
         </form>
       </div>
 
@@ -176,11 +239,31 @@ function App() {
         </div>
       )}
 
+      {/* 1. Show the uploaded paper FIRST if it exists */}
+      {uploadedPaper && (
+        <div className="uploaded-section" style={{ marginBottom: '40px' }}>
+          <h2 style={{ textAlign: 'center', paddingLeft: "10px", color: "#fff" }}>
+            Your Uploaded Document
+          </h2>
+          <PaperCard paper={uploadedPaper} index={-1} />
+          
+          <div style={{ textAlign: 'center', margin: '30px 0' }}>
+            <h2 style={{ padding: '0 10px', color: '#fff' }}>
+              Related Papers 
+            </h2>
+          </div>
+        </div>
+      )}
+
       {loading && <p className="loading">Loading papers...</p>}
 
-      {filteredPapers.map((p, idx) => (
-        <PaperCard key={idx} paper={p} index={idx} />
-      ))}
+      {/* 2. Show the search results SECOND */}
+      {(
+        filteredPapers.map((p, idx) => (
+          <PaperCard key={idx} paper={p} index={idx} />
+        ))
+      )}
+
     </div>
   );
 }
@@ -190,117 +273,130 @@ function PaperCard({ paper, index }) {
   const [loadingRelated, setLoadingRelated] = useState(false);
   const [summary, setSummary] = useState("");
   const [loadingSummary, setLoadingSummary] = useState(false);
+  const [showAllAuthors, setShowAllAuthors] = useState(false);
+  
+  // This state controls if the related papers are visible or hidden
+  const [showRelated, setShowRelated] = useState(false);
 
-  const fetchRelated = async () => {
+  // This handles the "See/Hide" logic
+  const handleRelatedToggle = async () => {
+    if (showRelated) {
+      setShowRelated(false); // Hide if already open
+      return;
+    }
+
+    if (related.length > 0) {
+      setShowRelated(true); // Show without fetching if we already have them
+      return;
+    }
+
     setLoadingRelated(true);
+    const url = index === -1 
+      ? `http://localhost:5000/papers?topic=${encodeURIComponent(paper.title)}` 
+      : `http://localhost:5000/related?index=${index}`;
+
     try {
-      const res = await fetch(`http://localhost:5000/related?index=${index}`);
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      const res = await fetch(url);
       const data = await res.json();
-      setRelated(data.relatedPapers || []);
+      const relatedDocs = data.relatedPapers || data.papers || [];
+      setRelated(relatedDocs.slice(0, 5));
+      setShowRelated(true);
     } catch (err) {
-      console.error("Failed to fetch related papers:", err);
-      alert("Failed to fetch related papers.");
+      alert("Failed to find related documents.");
     } finally {
       setLoadingRelated(false);
     }
   };
 
   const summarizePaper = async () => {
-    console.log("[Frontend] summarizePaper function triggered");
-    
-    if (paper.geminiSummary) {
-      setSummary(paper.geminiSummary);
-      return;
+    // Check if we already have a summary stored in the paper object
+    if (paper.groqSummary) { 
+      setSummary(paper.groqSummary); 
+      return; 
     }
 
     setLoadingSummary(true);
 
     try {
-      console.log("[Frontend] Sending data to /summarize", { title: paper.title, summary: paper.summary });
-
       const res = await fetch("http://localhost:5000/summarize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-        title: paper.title,
-        summary: paper.summary,
-        authors: paper.authors,
-        year: paper.year
-      }),});
+          title: paper.title,
+          summary: paper.summary, // This is the abstract/original summary
+          authors: paper.authors,
+          year: paper.year
+        }),
+      });
 
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      if (!res.ok) throw new Error(`Server error: ${res.status}`);
 
       const data = await res.json();
-      console.log("[Frontend] Summarize response data:", data);
+      
+      // We expect the backend to return { summary: "..." }
+      if (data.summary) {
+        setSummary(data.summary);
+        // Store it so we don't have to fetch it again if the user clicks twice
+        paper.groqSummary = data.summary; 
+      } else {
+        throw new Error("No summary in response");
+      }
 
-      setSummary(data.summary);
-
-      paper.geminiSummary = data.summary;
     } catch (err) {
-      console.error("[Frontend] Summarization failed:", err);
-      alert("Failed to summarize the paper.");
+      console.log("Summarization failed:", err);
+      alert("Summarization failed. Please check if your Backend is running and the Groq Key is valid.");
     } finally {
       setLoadingSummary(false);
     }
   };
 
+  const allAuthors = Array.isArray(paper.authors) ? paper.authors : [paper.authors || "Unknown"];
+  const hasMore = allAuthors.length > 10;
+  const displayedAuthors = showAllAuthors ? allAuthors : allAuthors.slice(0, 10);
+
   return (
     <div className="paper-card">
-      <h3>
-        <a href={paper.link} target="_blank" rel="noopener noreferrer">
-          {paper.title}
-        </a>
-      </h3>
-
+      <h3><a href={paper.link} target="_blank" rel="noopener noreferrer">{paper.title}</a></h3>
       <p>{paper.summary}</p>
 
-      <small>
-        Authors: {paper.authors.join(", ")} | Source: {formatSourceName(paper.source)}
-        {paper.citations > 0 && ` | Citations: ${paper.citations}`}
-        {paper.year > 0 && ` | Year: ${paper.year}`}
+      <small className="authors-container">
+        <strong>Authors:</strong> {displayedAuthors.join(", ")}
+        {hasMore && (
+          <> {" "}
+            <button className="author-link-btn" onClick={() => setShowAllAuthors(!showAllAuthors)}>
+              {showAllAuthors ? "Show Less" : `and ${allAuthors.length - 10} more`}
+            </button>
+          </>
+        )}
+        <span className="source-info">
+          | <strong>Source:</strong> {formatSourceName(paper.source)}
+          {paper.citations > 0 && <> | <strong>Citations:</strong> {paper.citations}</>}
+          {paper.year > 0 && <> | <strong>Year:</strong> {paper.year}</>}
+        </span>
       </small>
 
-
       <div className="buttons-container">
-        <button
-          className="related-button"
-          onClick={fetchRelated}
-          disabled={loadingRelated}
-        >See Related Papers
+        {/* The button text now changes based on showRelated state */}
+        <button className="related-button" onClick={handleRelatedToggle} disabled={loadingRelated}>
+          {loadingRelated ? "Loading..." : showRelated ? "Hide Related Papers" : "See Related Papers"}
         </button>
-
-        <button
-          className="summary-button"
-          onClick={summarizePaper}
-          disabled={loadingSummary}
-        >Summarize
+        <button className="summary-button" onClick={summarizePaper} disabled={loadingSummary}>
+          Summarize
         </button>
       </div>
 
-      {loadingSummary && <p id="smry-loading" className="loading">Summarizing paper...</p>}
-      {summary && (
-        <div className="summary-result">
-          {formatSummary(summary)}
-        </div>
-      )}
+      {loadingSummary && <p className="loading" style={{color: '#4a148c'}}>Summarizing...</p>}
+      {summary && <div className="summary-result">{formatSummary(summary)}</div>}
+      {loadingRelated && <p className="loading">Finding related...</p>}
 
-
-      {loadingRelated && <p className="loading">Loading related papers...</p>}
-
-      {related.length > 0 && (
-        <div className="related-papers">
+      {/* This section ONLY appears when showRelated is true */}
+      {showRelated && related.length > 0 && (
+        <div className="related-papers-dropdown">
+          <h4 style={{marginTop: '15px', borderTop: '1px solid #ddd', paddingTop: '10px'}}>Related Papers:</h4>
           {related.map((r, i) => (
-            <div key={i}>
-              <a href={r.link} target="_blank" rel="noopener noreferrer">
-                {r.title}
-              </a>
-              <p>{r.summary}</p>
-              <small>
-                Source: {formatSourceName(r.source)}
-                {r.citations > 0 && ` | Citations: ${r.citations}`}
-                {r.year > 0 && ` | Year: ${r.year}`}
-              </small>
+            <div key={i} style={{marginBottom: '10px', paddingLeft: '10px'}}>
+              <a href={r.link} target="_blank" rel="noopener noreferrer" style={{fontSize: '0.9rem', fontWeight: 'bold', textDecoration: 'none', color: '#4a148c'}}>{r.title}</a>
+              <p style={{fontSize: '0.8rem', margin: '4px 0'}}>{r.summary.substring(0, 120)}</p>
             </div>
           ))}
         </div>

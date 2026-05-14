@@ -78,14 +78,15 @@ h1 {
 
 .search-form input[type="text"] {
   flex: 1;
-  max-width: 50rem;
+  max-width: 40rem;
   padding: 0.8rem;
   border-radius: 10px;
   border: none;
   font-size: 1rem;
 }
 
-.search-form button {
+.search-form button, .upload-file {
+  font-family: 'Verdana', sans-serif;
   padding: 0.8rem 1.5rem;
   font-size: 1rem;
   background-color: var(--primary-color);
@@ -171,6 +172,28 @@ select {
   margin-right: 0.3rem;
   border-radius: 5px;
   font-size: 0.8rem;
+}
+
+/* Styles the button to look exactly like a blue text link */
+.author-link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit; /* Inherits font-size and family from <small> */
+  color: #212121; /* Standard link blue */
+  text-decoration: underline;
+  cursor: pointer;
+  display: inline; /* Keeps it on the same line as Authors */
+}
+
+.author-link-btn:hover {
+  color: #212121; /* Darker blue on hover */
+  text-decoration: none; /* Optional: remove underline on hover */
+}
+
+.author-link-btn:focus {
+  outline: none; /* Optional: clean look, but keep for accessibility if needed */
 }
 
 /* ==== RELATED BUTTON ==== */

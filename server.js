@@ -1,10 +1,13 @@
 require('dotenv').config();
-const { GoogleAuth } = require("google-auth-library");
 
 const express = require("express");
 const axios = require("axios");
 const natural = require("natural");
 const cors = require("cors");
+const multer = require("multer");
+const fs = require('fs');
+const pdfParse = require('pdf-parse');
+
 
 const app = express();
 const PORT = 5000;
@@ -12,14 +15,19 @@ const PORT = 5000;
 app.use(cors());
 app.use(express.json());
 
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
+
 let cachedPapers = [];
 let topicCache = {};
 
 // ===== API KEYS (replace with your keys) =====
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+// const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const IEEE_API_KEY = process.env.IEEE_API_KEY;
 const SPRINGER_API_KEY = process.env.SPRINGER_API_KEY;
 const ELSEVIER_API_KEY = process.env.ELSEVIER_API_KEY;
+
+console.log("Checking Groq Key:", process.env.GROQ_API_KEY ? "Key Found" : "Key MISSING");
 
 // ===== Helper Functions =====
 async function safeFetch(fn) {
@@ -61,32 +69,59 @@ async function fetchIEEE(topic) {
 
   return await safeFetch(async () => {
     try {
-      const res = await axios.get("https://ieeexploreapi.ieee.org/api/v1/search/articles", {
-        params: {
-          querytext: topic,
-          format: "json",
-          max_records: 5,
-          start_record: 1,
-          apikey: IEEE_API_KEY
+      const res = await axios.get(
+        "https://ieeexploreapi.ieee.org/api/v1/search/articles",
+        {
+          params: {
+            querytext: topic,
+            format: "json",
+            max_records: 5,
+            start_record: 1,
+            apikey: IEEE_API_KEY
+          },
+          timeout: 10000,
+          headers: { "User-Agent": "Paperly/1.0" }
         }
-      });
+      );
 
-      const articles = res.data.articles || [];
+      const articles = Array.isArray(res.data?.articles)
+        ? res.data.articles
+        : [];
+
       console.log(`[Backend] IEEE Papers fetched: ${articles.length}`);
 
-      return articles.map(p => ({
-        title: p.title || "No title",
-        summary: p.abstract || "No abstract",
-        link: p.pdf_url || "#",
-        authors: p.authors?.map(a => a.full_name) || [],
-        source: "IEEE",
-        year: parseInt(p.publication_year) || 0,
-        citations: p.citation_count || 0,
-        tags: []
-      }));
+      return articles.map(p => {
+        let authors = [];
+
+        if (p.authors && typeof p.authors === "object") {
+          const a = p.authors.authors;
+
+          if (Array.isArray(a)) {
+            authors = a
+              .map(x => x?.full_name)
+              .filter(Boolean);
+          } else if (a && typeof a === "object" && a.full_name) {
+            authors = [a.full_name];
+          }
+        }
+
+        return {
+          title: p.title || "No title",
+          summary: p.abstract || "",
+          link: p.pdf_url || "#",
+          authors,
+          source: "IEEE",
+          year: parseInt(p.publication_year) || 0,
+          citations: p.citation_count || 0,
+          tags: []
+        };
+      });
 
     } catch (err) {
-      console.error("Error fetching IEEE papers:", err.response?.data || err.message);
+      console.error(
+        "Error fetching IEEE papers:",
+        err.response?.data || err.message
+      );
       return [];
     }
   });
@@ -102,11 +137,11 @@ const fetchSpringer = async (topic) => {
       }
     });
 
-    console.log("Springer API Raw Response:", res.data);
+    // console.log("Springer API Raw Response:", res.data);
 
     const springerPapers = (res.data.records || []).map(p => ({
       title: p.title || "No title",
-      summary: p.abstract?.text || "No abstract provided",
+      summary: p.abstract?.text || " provided",
       authors: p.creators?.map(a => a.creator) || [],
       source: p.publisher?.text || "Springer",
       link: p.url[0]?.value || "#",
@@ -153,7 +188,7 @@ async function fetchElsevier(topic) {
 
     return entries.map(p => ({
       title: p['dc:title'] || 'No title',
-      summary: p['dc:description'] || p['prism:teaser'] || 'No abstract',
+      summary: p['dc:description'] || p['prism:teaser'] || '',
       link: p['prism:url'] || '#',
       authors: (p['dc:creator'] ? [p['dc:creator']] : p['author-names']?.author?.map(a => a.authname) || []),
       source: 'Scopus',
@@ -167,6 +202,83 @@ async function fetchElsevier(topic) {
   }
 }
 
+// ===== Upload Paper and Find Similar Papers =====
+app.post("/upload-search", upload.single("paper"), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: "No file uploaded." });
+
+    const data = await pdfParse(req.file.buffer);
+    const rawText = data.text.substring(0, 2000); // Take the first chunk of text
+
+    // Prompt optimized for Groq (Llama 3)
+    const extractPrompt = `
+      You are a research assistant. Extract the Title, Authors, and Abstract from the following text.
+      Return the result ONLY as a JSON object with keys: "title", "authors", "abstract".
+      If a field is missing, use "Unknown".
+      Text: ${rawText}
+    `;
+
+    // 1. Call Groq API instead of Gemini
+    const groqRes = await axios.post(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          { role: "system", content: "You output only valid JSON." },
+          { role: "user", content: extractPrompt }
+        ],
+        response_format: { type: "json_object" } // Ensures valid JSON response
+      },
+      {
+        headers: {
+          "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+
+    // 2. Parse Groq's response (OpenAI format)
+    let jsonString = groqRes.data.choices[0].message.content;
+    let metadata;
+
+    try {
+      metadata = JSON.parse(jsonString);
+    } catch (parseError) {
+      console.error("JSON Parse Error:", jsonString);
+      // Clean fallback if AI adds markdown
+      jsonString = jsonString.replace(/```json/ig, "").replace(/```/g, "").trim();
+      metadata = JSON.parse(jsonString);
+    }
+
+    // Now find related papers from your cache using the new clean title
+    const TfIdf = natural.TfIdf;
+    const tfidf = new TfIdf();
+    cachedPapers.forEach(p => tfidf.addDocument((p.title + " " + p.summary).toLowerCase()));
+
+    const scores = cachedPapers.map((p, i) => ({
+      paper: p,
+      score: tfidf.tfidf(metadata.title.toLowerCase(), i)
+    }));
+
+    const relatedPapers = scores
+      .filter(s => s.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5)
+      .map(s => s.paper);
+
+    res.json({
+      title: metadata.title,
+      authors: Array.isArray(metadata.authors) ? metadata.authors.join(", ") : metadata.authors,
+      abstract: metadata.abstract,
+      relatedPapers
+    });
+
+  } catch (err) {
+    console.error("Advanced Parsing Error:", err);
+    res.status(500).json({ error: "Failed to parse PDF metadata." });
+  }
+});
+
 // ===== Main Route: Papers =====
 app.get("/papers", async (req,res)=>{
   const topic = req.query.topic || "";
@@ -177,7 +289,7 @@ app.get("/papers", async (req,res)=>{
     const r = await axios.get(`https://api.openalex.org/works?search=${encodeURIComponent(topic)}&per_page=5`);
     return (r.data.results || []).map(p => ({
       title: p.title || "No title",
-      summary: p.abstract || "No abstract",
+      summary: p.abstract || "",
       link: p.id || "#",
       authors: p.authorships ? p.authorships.map(a => a.author.display_name) : [],
       source: normalizeSource(p.host_venue?.display_name || "OpenAlex"),
@@ -197,7 +309,7 @@ app.get("/papers", async (req,res)=>{
     while ((match = regex.exec(data)) !== null) {
       const entry = match[1];
       const title = entry.match(/<title>([\s\S]*?)<\/title>/)?.[1]?.trim() || "No title";
-      const summary = entry.match(/<summary>([\s\S]*?)<\/summary>/)?.[1]?.trim() || "No abstract";
+      const summary = entry.match(/<summary>([\s\S]*?)<\/summary>/)?.[1]?.trim() || "";
       const link = entry.match(/<id>(.*?)<\/id>/)?.[1]?.trim() || "#";
       const authors = [...entry.matchAll(/<name>(.*?)<\/name>/g)].map(a=>a[1]);
       papers.push({ title, summary, link, authors, source:"arXiv", year:0, citations:0, tags:[] });
@@ -210,7 +322,7 @@ app.get("/papers", async (req,res)=>{
     const r = await axios.get(`https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(topic)}&limit=5&fields=title,abstract,url,venue,citationCount,year,authors`);
     return (r.data.data || []).map(p => ({
       title: p.title || "No title",
-      summary: p.abstract || "No abstract",
+      summary: p.abstract || "",
       link: p.url || "#",
       authors: p.authors ? p.authors.map(a=>a.name) : [],
       source: normalizeSource(p.venue || "Semantic Scholar"),
@@ -222,7 +334,7 @@ app.get("/papers", async (req,res)=>{
 
   const springerPapers = await fetchSpringer(topic);
   // const elsevierPapers = await fetchElsevier(topic);
-  // const ieeePapers = await fetchIEEE(topic);
+  const ieeePapers = await fetchIEEE(topic);
 
   // console.log("[Backend] Elsevier Papers fetched:", elsevierPapers.length);
   // console.log("[Backend] IEEE Papers fetched:", ieeePapers.length);
@@ -232,9 +344,9 @@ app.get("/papers", async (req,res)=>{
     ...openAlexPapers, 
     ...arxivPapers, 
     ...semPapers, 
-    ...springerPapers
+    ...springerPapers,
+    ...ieeePapers,
     //, ...elsevierPapers,
-    // ...ieeePapers,
   ];
 
   console.log("[Backend] Total Papers aggregated:", allPapers.length);
@@ -284,57 +396,56 @@ app.get("/related", (req,res)=>{
 
 // ===== Summarize Paper =====
 app.post("/summarize", async (req, res) => {
-  const { title, summary, authors, year } = req.body; // authors should be an array
+  const { title, summary, authors, year } = req.body;
 
-  if (!title || !summary) {
-    return res.status(400).json({ error: "Title and summary are required." });
+  if (!title) {
+    return res.status(400).json({ error: "Title is required." });
   }
 
-  // Construct prompt dynamically
-  let prompt = `Summarize this academic paper in a single concise paragraph (5-10 lines). Only use the provided abstract if available; otherwise, infer from the title and authors.
+  const prompt = `Summarize this academic paper in a single concise paragraph (5–10 lines).
 
-  Title: "${title}"
-  Authors: "${Array.isArray(authors) ? authors.join(", ") : authors || "Unknown"}"
-  Year: "${year || "Unknown"}"
-  ${summary && summary.trim() !== "" ? `Abstract: "${summary}"` : ""}
+Title: "${title}"
+Authors: "${Array.isArray(authors) ? authors.join(", ") : authors || "Unknown"}"
+Year: "${year || "Unknown"}"
+${summary ? `Abstract: "${summary}"` : ""}
 
-  Important instructions:
-- Return only one cohesive paragraph.
-- Do NOT include any bullet points, lists, headings, or enumerations.
-- Do not include introductory phrases like "Given the title..." or "Based on the title...".
-- Do not invent content unrelated to the title and abstract.
-- Provide a clear, direct, and scientifically plausible summary.`;
-
-  const body = {
-    contents: [{ parts: [{ text: prompt }] }],
-  };
+Rules:
+- One paragraph only
+- No bullet points or headings
+- No filler phrases
+- No invented facts`;
 
   try {
     const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
-      body,
-      { headers: { "Content-Type": "application/json" } }
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          { role: "system", content: "You are an academic research assistant." },
+          { role: "user", content: prompt }
+        ],
+        temperature: 0,
+        max_tokens: 500
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+          "Content-Type": "application/json"
+        }
+      }
     );
 
-    // Get the generated text from Gemini API
-    let generatedSummary = response.data?.candidates?.[0]?.content?.parts?.[0]?.text || "No summary generated.";
+    const generatedSummary =
+      response.data.choices[0].message.content
+        .replace(/\s+/g, " ")
+        .trim();
 
-    // Remove everything before the first colon or instruction preamble
-    generatedSummary = generatedSummary.replace(/^.*?:\s*/s, '').trim();
-
-    // Replace newlines and bullet points with spaces to make it a clean paragraph
-    generatedSummary = generatedSummary.replace(/[\n*•]+/g, ' ').replace(/\s+/g, ' ').trim();
-
-    // Send the cleaned summary back to the client
-    res.json({
-      summary: generatedSummary,
-      authors: authors || [],
-      year: year || null,
-    });
+    res.json({ summary: generatedSummary });
 
   } catch (err) {
-    console.error("Gemini API Error:", err.response?.data || err.message);
-    res.status(500).json({ error: "Failed to generate summary!" });
+    console.error("GROQ ERROR STATUS:", err.response?.status);
+    console.error("GROQ ERROR DATA:", err.response?.data || err.message);
+    res.status(500).json({ error: "Groq summarization failed" });
   }
 });
 
