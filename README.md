@@ -1,6 +1,8 @@
 # Paperly
 
-Paperly is a full-stack web application designed to help researchers, students, and enthusiasts quickly explore academic papers on any topic. It aggregates papers from multiple sources, allows filtering and sorting, and provides features like related papers discovery and AI-powered summarization. The app makes navigating the overwhelming world of academic research easier and more efficient.
+Paperly is a full-stack web application designed to help researchers, students, and enthusiasts efficiently explore academic papers across various domains. It aggregates metadata and abstracts from multiple academic sources and redirects users to the respective publication websites. The platform supports advanced filtering and sorting, related paper discovery, and AI-powered summarization, making academic research more accessible and easier to navigate.
+
+Paperly does not host copyrighted PDFs.
 
 ## Features:
 
