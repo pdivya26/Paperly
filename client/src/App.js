@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from "react";
 import "./App.css";
 
+const API = process.env.REACT_APP_API_URL || "http://localhost:5000";
+
 const ACRONYMS = ["IEEE", "ACM", "NASA"];
 const SPECIAL_CASES = ["arXiv", "OpenAlex"];
+
+console.log("API:", process.env.REACT_APP_API_URL);
 
 function formatSourceName(str) {
   if (!str) return "";
@@ -53,7 +57,7 @@ function App() {
 
     try {
       const res = await fetch(
-        `http://localhost:5000/papers?topic=${encodeURIComponent(topic)}`
+        `${API}/papers?topic=${encodeURIComponent(topic)}`
       );
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const data = await res.json();
@@ -77,7 +81,7 @@ function App() {
 
     try {
       // Step 1: Upload and Parse PDF
-      const res = await fetch("http://localhost:5000/upload-search", {
+      const res = await fetch(`${API}/upload-search`, {
         method: "POST",
         body: formData,
       });
@@ -101,7 +105,7 @@ function App() {
       setLoading(true);
       
       const searchRes = await fetch(
-        `http://localhost:5000/papers?topic=${encodeURIComponent(data.title)}`
+        `${API}/papers?topic=${encodeURIComponent(data.title)}`
       );
       const searchData = await searchRes.json();
       
@@ -292,8 +296,8 @@ function PaperCard({ paper, index }) {
 
     setLoadingRelated(true);
     const url = index === -1 
-      ? `http://localhost:5000/papers?topic=${encodeURIComponent(paper.title)}` 
-      : `http://localhost:5000/related?index=${index}`;
+      ? `${API}/papers?topic=${encodeURIComponent(paper.title)}` 
+      : `${API}/related?index=${index}`;
 
     try {
       const res = await fetch(url);
@@ -318,7 +322,7 @@ function PaperCard({ paper, index }) {
     setLoadingSummary(true);
 
     try {
-      const res = await fetch("http://localhost:5000/summarize", {
+      const res = await fetch(`${API}/summarize`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
