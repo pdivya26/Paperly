@@ -40,7 +40,6 @@ function App() {
   const [sortBy, setSortBy] = useState("Relevance");
   const [uploading, setUploading] = useState(null);
   const [uploadedPaper, setUploadedPaper] = useState(null);
-  const [uploadResults, setUploadResults] = useState([]);
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -165,6 +164,7 @@ function App() {
 
   useEffect(() => {
     applyFilterAndSort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSources, sortBy, papers]);
 
   const sources = Array.from(new Set(papers.map((p) => p.source)));
