@@ -4,7 +4,7 @@ Paperly is a full-stack web application designed to help researchers, students, 
 
 Paperly does not host copyrighted PDFs.
 
-[Live Demo](https://paperly-web.vercel.app/)
+[**Live Demo**](https://paperly-web.vercel.app/)
 
 ## Features:
 
