@@ -402,7 +402,7 @@ function PaperCard({ paper, index }) {
         <div className="related-papers-dropdown">
           <h4 style={{marginTop: '15px', borderTop: '1px solid #ddd', paddingTop: '10px'}}>Related Papers:</h4>
           {related.map((r, i) => (
-            <div key={i} style={{marginBottom: '10px', paddingLeft: '10px'}}>
+            <div key={i} style={{marginBottom: '10px'}}>
               <a href={r.link} target="_blank" rel="noopener noreferrer" style={{fontSize: '0.9rem', fontWeight: 'bold', textDecoration: 'none', color: '#4a148c'}}>{r.title}</a>
               <p style={{fontSize: '0.8rem', margin: '4px 0'}}>{r.summary.substring(0, 120)}</p>
             </div>

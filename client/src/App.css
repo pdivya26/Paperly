@@ -389,11 +389,6 @@ select {
     gap: 10px;
   }
 
-  .related-button,
-  .summary-button {
-    width: 100%;
-  }
-
   .summary-result {
     font-size: 0.9rem;
     line-height: 1.6;
