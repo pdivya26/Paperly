@@ -78,11 +78,11 @@ h1 {
 
 .search-form input[type="text"] {
   flex: 1;
-  max-width: 40rem;
   padding: 0.8rem;
   border-radius: 10px;
   border: none;
   font-size: 1rem;
+  box-sizing: border-box;
 }
 
 .search-form button, .upload-file {
@@ -95,6 +95,12 @@ h1 {
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.3s ease;
+}
+
+.button-group {
+  display: flex;
+  gap: 10px;
+  align-items: center;
 }
 
 .search-form button:hover {
@@ -278,12 +284,7 @@ select {
 /* ==== MEDIA QUERIES ==== */
 @media (max-width: 600px) {
   h1 {
-    font-size: 2rem;
-  }
-
-  .search-form input[type="text"] {
-    width: 100%;
-    margin: 0 0 1rem 0;
+    font-size: 5rem;
   }
 
   .filters {
@@ -293,5 +294,135 @@ select {
 
   .paper-card {
     transform: none;
+  }
+}
+
+/* =========================
+   MOBILE RESPONSIVE STYLES
+========================= */
+
+@media (max-width: 768px) {
+
+  .app-container {
+    padding: 15px;
+  }
+
+  .hero {
+    padding: 20px 15px;
+    margin: 0;
+  }
+
+  .project-title {
+    font-size: 2rem;
+    text-align: center;
+  }
+
+  .search-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .search-form .button-group {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .search-form .button-group button,
+  .search-form .button-group .upload-file {
+    flex: 1;
+    width: 50%;
+  }
+
+  .search-form input {
+    width: 100%;
+    font-size: 16px;
+  }
+
+  .search-form button,
+  .search-form .upload-file {
+    width: 100%;
+    text-align: center;
+  }
+
+  .filters-container {
+    flex-direction: column;
+    gap: 15px;
+    align-items: stretch;
+  }
+
+  .filters,
+  .sort-by {
+    width: 100%;
+  }
+
+  .sort-by select {
+    width: 100%;
+    margin-top: 15px;
+  }
+
+  .paper-card {
+    padding: 15px;
+    margin-bottom: 20px;
+  }
+
+  .paper-card h3 {
+    font-size: 1rem;
+    line-height: 1.4;
+  }
+
+  .paper-card p {
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  .authors-container {
+    font-size: 0.8rem;
+    line-height: 1.5;
+  }
+
+  .buttons-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .related-button,
+  .summary-button {
+    width: 100%;
+  }
+
+  .summary-result {
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+
+  .related-papers-dropdown a {
+    font-size: 0.9rem;
+  }
+}
+
+/* Extra small devices */
+
+@media (max-width: 480px) {
+
+  .project-title {
+    font-size: 4rem;
+  }
+
+  .paper-card {
+    border-radius: 12px;
+  }
+
+  .search-form input {
+    padding: 12px;
+  }
+
+  .search-form button,
+  .upload-file {
+    padding: 12px;
+    font-size: 14px;
   }
 }

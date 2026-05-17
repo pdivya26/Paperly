@@ -194,16 +194,20 @@ function App() {
             placeholder="Enter your research topic"
             required
           />
-          <button type="submit">Search</button>
-          <label className="upload-file" title="Upload a paper to find similar research">
-          {uploading ? "Loading" : "Upload"}
-          <input 
-            type="file" 
-            accept=".pdf" 
-            onChange={handleFileUpload} 
-            style={{ display: "none" }} 
-          />
-        </label>
+          <div className="button-group">
+            <button type="submit">Search</button>
+            <label
+              className="upload-file"
+              title="Upload a paper to find similar research">
+              {uploading ? "Loading" : "Upload"}
+              <input
+                type="file"
+                accept=".pdf"
+                onChange={handleFileUpload}
+                style={{ display: "none" }}
+              />
+            </label>
+          </div>
         </form>
       </div>
 
@@ -391,7 +395,7 @@ function PaperCard({ paper, index }) {
 
       {loadingSummary && <p className="loading" style={{color: '#4a148c'}}>Summarizing...</p>}
       {summary && <div className="summary-result">{formatSummary(summary)}</div>}
-      {loadingRelated && <p className="loading">Finding related...</p>}
+      {loadingRelated && <p className="loading" style={{color: '#4a148c'}}>Finding related papers...</p>}
 
       {/* This section ONLY appears when showRelated is true */}
       {showRelated && related.length > 0 && (
