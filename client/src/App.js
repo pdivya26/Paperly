@@ -51,7 +51,7 @@ function App() {
     setFilteredPapers([]);
     setSelectedSources([]);
     setSortBy("Relevance");
-
+    
     setLoading(true);
 
     try {
@@ -253,7 +253,11 @@ function App() {
           <h2 style={{ textAlign: 'center', paddingLeft: "10px", color: "#fff" }}>
             Your Uploaded Document
           </h2>
-          <PaperCard paper={uploadedPaper} index={-1} />
+          <PaperCard
+            key={`uploaded-${uploadedPaper.title}`}
+            paper={uploadedPaper}
+            index={-1}
+          />
           
           <div style={{ textAlign: 'center', margin: '30px 0' }}>
             <h2 style={{ padding: '0 10px', color: '#fff' }}>
@@ -266,11 +270,13 @@ function App() {
       {loading && <p className="loading">Loading papers...</p>}
 
       {/* 2. Show the search results SECOND */}
-      {(
-        filteredPapers.map((p, idx) => (
-          <PaperCard key={idx} paper={p} index={idx} />
-        ))
-      )}
+      {filteredPapers.map((p, idx) => (
+        <PaperCard
+          key={p.link || `${p.title}-${p.source}`}
+          paper={p}
+          index={idx}
+        />
+      ))}
 
     </div>
   );
@@ -282,9 +288,16 @@ function PaperCard({ paper, index }) {
   const [summary, setSummary] = useState("");
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [showAllAuthors, setShowAllAuthors] = useState(false);
-  
-  // This state controls if the related papers are visible or hidden
   const [showRelated, setShowRelated] = useState(false);
+
+  useEffect(() => {
+    setSummary("");
+    setRelated([]);
+    setShowRelated(false);
+    setLoadingSummary(false);
+    setLoadingRelated(false);
+    setShowAllAuthors(false);
+  }, [paper.title]);
 
   // This handles the "See/Hide" logic
   const handleRelatedToggle = async () => {
@@ -345,7 +358,7 @@ function PaperCard({ paper, index }) {
       if (data.summary) {
         setSummary(data.summary);
         // Store it so we don't have to fetch it again if the user clicks twice
-        paper.groqSummary = data.summary; 
+        // paper.groqSummary = data.summary; 
       } else {
         throw new Error("No summary in response");
       }

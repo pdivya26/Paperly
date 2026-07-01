@@ -212,7 +212,7 @@ app.post("/upload-search", upload.single("paper"), async (req, res) => {
     const data = await pdfParse(req.file.buffer);
     const rawText = data.text.substring(0, 2000); // Take the first chunk of text
 
-    // Prompt optimized for Groq (Llama 3)
+    // Prompt optimized for Groq (GPT-OSS 120B)
     const extractPrompt = `
       You are a research assistant. Extract the Title, Authors, and Abstract from the following text.
       Return the result ONLY as a JSON object with keys: "title", "authors", "abstract".
@@ -220,11 +220,11 @@ app.post("/upload-search", upload.single("paper"), async (req, res) => {
       Text: ${rawText}
     `;
 
-    // 1. Call Groq API instead of Gemini
+    // 1. Call Groq API 
     const groqRes = await axios.post(
       "https://api.groq.com/openai/v1/chat/completions",
       {
-        model: "llama-3.3-70b-versatile",
+        model: "openai/gpt-oss-120b",
         messages: [
           { role: "system", content: "You output only valid JSON." },
           { role: "user", content: extractPrompt }
@@ -421,7 +421,7 @@ Rules:
     const response = await axios.post(
       "https://api.groq.com/openai/v1/chat/completions",
       {
-        model: "llama-3.3-70b-versatile",
+        model: "openai/gpt-oss-120b",
         messages: [
           { role: "system", content: "You are an academic research assistant." },
           { role: "user", content: prompt }
@@ -445,9 +445,16 @@ Rules:
     res.json({ summary: generatedSummary });
 
   } catch (err) {
-    console.error("GROQ ERROR STATUS:", err.response?.status);
-    console.error("GROQ ERROR DATA:", err.response?.data || err.message);
-    res.status(500).json({ error: "Groq summarization failed" });
+      console.error("========== GROQ ERROR ==========");
+      console.error("Status:", err.response?.status);
+      console.error("Headers:", err.response?.headers);
+      console.error("Data:", JSON.stringify(err.response?.data, null, 2));
+      console.error("Message:", err.message);
+      console.error(err.stack);
+
+    res.status(500).json({
+      error: err.response?.data || err.message
+    });
   }
 });
 
